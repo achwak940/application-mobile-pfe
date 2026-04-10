@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
+
 import 'package:appmobile/screens/auth/login_screen.dart';
 import 'package:appmobile/screens/auth/register_screen.dart';
+import 'package:appmobile/screens/enquete/enquete_interface.dart';
 import 'package:appmobile/screens/gestionProfil/profil.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,14 +15,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Login Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter App',
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
+
+      // 🟢 START APP
       initialRoute: '/',
+
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const Enquete(id: 26), // 👈 screen enquête
         '/register': (context) => const Register(),
         '/profile': (context) => const ProfileConsultationScreen(),
       },
