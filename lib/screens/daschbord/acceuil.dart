@@ -12,6 +12,16 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  void _navigateToHistorique() {
+    Navigator.pushNamed(context, '/HistoriqueEnquetes');
+    // Ou si vous préférez sans named route :
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => const HistoriqueEnquetesScreen(),
+    //   ),
+    // );
+  }
 
   // KPI Data
   int _enquiriesAnswered = 148;
@@ -1048,7 +1058,7 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                           icon: Icons.history,
                           label: 'Historique',
                           color: const Color(0xFF81C784),
-                          onTap: () => print('Voir l\'historique'),
+                          onTap: _navigateToHistorique, // Appel de la méthode
                         ),
                       ),
                     ],
