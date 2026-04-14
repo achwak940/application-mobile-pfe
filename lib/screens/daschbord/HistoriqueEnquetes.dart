@@ -1,6 +1,6 @@
 // screens/historique/historique_enquetes_screen.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class HistoriqueEnquetesScreen extends StatefulWidget {
   const HistoriqueEnquetesScreen({super.key});
@@ -17,14 +17,21 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
 
-  List<Map<String, dynamic>> _enquetes = [];
+  List<Map<String, dynamic>> _allEnquetes = [];
+  List<Map<String, dynamic>> _displayedEnquetes = [];
   bool _isSelectionMode = false;
   List<String> _selectedIds = [];
+
+  // Pagination
+  int _currentPage = 1;
+  int _itemsPerPage = 5;
+  int _totalPages = 1;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadEnquetes();
+    _loadEnquetesFromDatabase();
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -46,53 +53,192 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
     _animationController.forward();
   }
 
-  void _loadEnquetes() {
-    _enquetes = [
+  void _loadEnquetesFromDatabase() {
+    _allEnquetes = [
       {
-        'id': '1',
-        'titre': 'Délais livraison express',
-        'message': 'Quels sont les délais pour la livraison express ?',
-        'reponse': '24 à 48 heures ouvrées.',
-        'date': '15/01/2024',
-        'dateEnvoi': '15/01/2024 14:30',
-        'dateReponse': '16/01/2024 09:15',
+        'id': '100',
+        'titre': 'Enquête satisfaction complète - Mars 2026',
+        'message':
+            'Enquête détaillée sur la satisfaction client avec plusieurs questions',
+        'reponse': 'Merci pour votre participation complète.',
+        'date': '20/03/2026',
+        'dateEnvoi': '20/03/2026 09:00',
+        'dateReponse': '21/03/2026 15:30',
         'statut': 'repondu',
-        'categorie': 'Livraison',
+        'categorie': 'Satisfaction',
+        'icon': Icons.emoji_emotions_outlined,
+        'iconColor': Color(0xFF4CAF50),
+        'questionsReponses': [
+          {
+            'question': 'Comment évaluez-vous la qualité de nos produits ?',
+            'reponse': 'Très bonne qualité, je suis satisfait',
+          },
+          {
+            'question': 'Que pensez-vous des délais de livraison ?',
+            'reponse': 'Délais respectés, livraison rapide',
+          },
+          {
+            'question': 'Recommanderiez-vous notre service à un ami ?',
+            'reponse': 'Oui, certainement, note de 9/10',
+          },
+          {
+            'question': 'Quelles améliorations suggérez-vous ?',
+            'reponse': 'Ajouter plus de moyens de paiement',
+          },
+        ],
       },
       {
-        'id': '2',
-        'titre': 'Garantie accidentelle',
-        'message': 'La garantie couvre-t-elle les dégâts accidentels ?',
-        'reponse': 'Extension de garantie disponible.',
-        'date': '10/01/2024',
-        'dateEnvoi': '10/01/2024 11:20',
-        'dateReponse': '11/01/2024 14:45',
+        'id': '26',
+        'titre': 'Feedback employés – Trimestre 1',
+        'message':
+            'Recueillir les impressions des employés sur l\'environnement de travail',
+        'reponse':
+            'Merci pour votre feedback. Nous allons améliorer les conditions de travail.',
+        'date': '05/03/2026',
+        'dateEnvoi': '05/03/2026 10:30',
+        'dateReponse': '06/03/2026 14:30',
         'statut': 'repondu',
-        'categorie': 'Garantie',
+        'categorie': 'Feedback',
+        'icon': Icons.people_alt_outlined,
+        'iconColor': Color(0xFF2196F3),
+        'questionsReponses': [
+          {
+            'question':
+                'Êtes-vous satisfait de votre environnement de travail ?',
+            'reponse': 'Globalement satisfait, mais espace un peu petit',
+          },
+          {
+            'question': 'Comment évaluez-vous la communication interne ?',
+            'reponse': 'Bonne communication, réunions régulières',
+          },
+          {
+            'question': 'Avez-vous besoin de formations supplémentaires ?',
+            'reponse': 'Oui, formation sur les nouveaux outils',
+          },
+        ],
+      },
+      {
+        'id': '25',
+        'titre': 'Satisfaction clients – Mars 2026',
+        'message': 'Enquête destinée à évaluer la satisfaction des clients',
+        'reponse': '',
+        'date': '16/03/2026',
+        'dateEnvoi': '16/03/2026 09:00',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Satisfaction',
+        'icon': Icons.star_border_outlined,
+        'iconColor': Color(0xFFFF9800),
+        'questionsReponses': [],
+      },
+      {
+        'id': '27',
+        'titre': 'Satisfaction après achat – Mars 2026',
+        'message':
+            'Mesurer la satisfaction des clients ayant acheté une voiture',
+        'reponse': '',
+        'date': '16/03/2026',
+        'dateEnvoi': '16/03/2026 11:15',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Satisfaction',
+        'icon': Icons.shopping_cart_outlined,
+        'iconColor': Color(0xFFFF9800),
+        'questionsReponses': [],
+      },
+      {
+        'id': '21',
+        'titre': 'Enquête de satisfaction',
+        'message': 'Enquête de satisfaction pour test date 11 mars',
+        'reponse': '',
+        'date': '11/03/2026',
+        'dateEnvoi': '11/03/2026 14:20',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Satisfaction',
+        'icon': Icons.thumb_up_alt_outlined,
+        'iconColor': Color(0xFFFF9800),
+        'questionsReponses': [],
+      },
+      {
+        'id': '19',
+        'titre': 'Enquête API',
+        'message': 'Pour test API',
+        'reponse': '',
+        'date': '09/03/2026',
+        'dateEnvoi': '09/03/2026 08:45',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Technique',
+        'icon': Icons.api_outlined,
+        'iconColor': Color(0xFF9C27B0),
+        'questionsReponses': [],
+      },
+      {
+        'id': '12',
+        'titre': 'Enquête nouvelles questions',
+        'message': 'Test de création de nouvelles questions',
+        'reponse': '',
+        'date': '09/03/2026',
+        'dateEnvoi': '09/03/2026 13:00',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Questionnaire',
+        'icon': Icons.quiz_outlined,
+        'iconColor': Color(0xFF00BCD4),
+        'questionsReponses': [],
       },
       {
         'id': '3',
-        'titre': 'Remboursement commande',
-        'message': 'Remboursement commande #CMD-2024-001',
-        'reponse': 'Traitement sous 5-7 jours.',
-        'date': '05/01/2024',
-        'dateEnvoi': '05/01/2024 09:00',
-        'dateReponse': '06/01/2024 16:30',
-        'statut': 'repondu',
-        'categorie': 'Remboursement',
-      },
-      {
-        'id': '4',
-        'titre': 'Certification bio',
-        'message': 'Les produits sont-ils certifiés bio ?',
-        'reponse': 'Certifiés bio par ECOCERT.',
-        'date': '28/12/2023',
-        'dateEnvoi': '28/12/2023 10:15',
-        'dateReponse': '29/12/2023 11:00',
-        'statut': 'repondu',
-        'categorie': 'Produits',
+        'titre': 'Évaluation nouveau produit X',
+        'message': 'Sondage pour connaître l\'avis sur le produit X',
+        'reponse': '',
+        'date': '23/02/2026',
+        'dateEnvoi': '23/02/2026 15:30',
+        'dateReponse': '',
+        'statut': 'en_attente',
+        'categorie': 'Produit',
+        'icon': Icons.new_releases_outlined,
+        'iconColor': Color(0xFFE91E63),
+        'questionsReponses': [],
       },
     ];
+
+    _totalPages = (_allEnquetes.length / _itemsPerPage).ceil();
+    _loadPage();
+  }
+
+  void _loadPage() {
+    setState(() {
+      _isLoading = true;
+      final startIndex = (_currentPage - 1) * _itemsPerPage;
+      final endIndex = startIndex + _itemsPerPage;
+      _displayedEnquetes = _allEnquetes.sublist(
+        startIndex,
+        endIndex > _allEnquetes.length ? _allEnquetes.length : endIndex,
+      );
+      _isLoading = false;
+    });
+  }
+
+  void _nextPage() {
+    if (_currentPage < _totalPages) {
+      setState(() {
+        _currentPage++;
+        _loadPage();
+      });
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  void _previousPage() {
+    if (_currentPage > 1) {
+      setState(() {
+        _currentPage--;
+        _loadPage();
+      });
+      HapticFeedback.lightImpact();
+    }
   }
 
   void _toggleSelection(String id) {
@@ -106,6 +252,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
         _isSelectionMode = false;
       }
     });
+    HapticFeedback.selectionClick();
   }
 
   void _enterSelectionMode() {
@@ -113,6 +260,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       _isSelectionMode = true;
       _selectedIds.clear();
     });
+    HapticFeedback.mediumImpact();
   }
 
   void _exitSelectionMode() {
@@ -129,13 +277,18 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       content: 'Supprimer ${_selectedIds.length} enquête(s) ?',
       onConfirm: () {
         setState(() {
-          _enquetes.removeWhere((e) => _selectedIds.contains(e['id']));
+          _allEnquetes.removeWhere((e) => _selectedIds.contains(e['id']));
           _selectedIds.clear();
           _isSelectionMode = false;
+          _totalPages = (_allEnquetes.length / _itemsPerPage).ceil();
+          if (_currentPage > _totalPages && _totalPages > 0) {
+            _currentPage = _totalPages;
+          }
+          _loadPage();
         });
         _showSnackbar(
           '${_selectedIds.length} enquête(s) supprimée(s)',
-          const Color(0xFFFF8A8A),
+          const Color(0xFFFF6B6B),
         );
       },
     );
@@ -146,25 +299,37 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       title: 'Supprimer',
       content: 'Supprimer cette enquête ?',
       onConfirm: () {
-        setState(() => _enquetes.removeAt(index));
-        _showSnackbar('Enquête supprimée', const Color(0xFFFF8A8A));
+        setState(() {
+          _allEnquetes.removeWhere((e) => e['id'] == id);
+          _totalPages = (_allEnquetes.length / _itemsPerPage).ceil();
+          if (_currentPage > _totalPages && _totalPages > 0) {
+            _currentPage = _totalPages;
+          }
+          _loadPage();
+        });
+        _showSnackbar('Enquête supprimée', const Color(0xFFFF6B6B));
       },
     );
   }
 
   void _deleteAll() {
-    if (_enquetes.isEmpty) {
-      _showSnackbar('Aucune enquête à supprimer', const Color(0xFFFF8A8A));
+    if (_allEnquetes.isEmpty) {
+      _showSnackbar('Aucune enquête à supprimer', const Color(0xFFFF6B6B));
       return;
     }
     _showDeleteDialog(
       title: 'Supprimer tout',
       content: 'Supprimer tout l\'historique ? Action irréversible.',
       onConfirm: () {
-        setState(() => _enquetes.clear());
+        setState(() {
+          _allEnquetes.clear();
+          _displayedEnquetes.clear();
+          _currentPage = 1;
+          _totalPages = 1;
+        });
         _showSnackbar(
           'Toutes les enquêtes supprimées',
-          const Color(0xFFFF8A8A),
+          const Color(0xFFFF6B6B),
         );
       },
     );
@@ -179,15 +344,19 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFFF6B6B)),
+            SizedBox(width: 10),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text(content),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Annuler',
-              style: TextStyle(color: Color(0xFF8A8A9E)),
-            ),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFF8A8A9E)),
+            child: const Text('Annuler'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -195,7 +364,8 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
               onConfirm();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF8A8A),
+              backgroundColor: const Color(0xFFFF6B6B),
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -212,9 +382,9 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: color,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -227,52 +397,79 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
 
   @override
   Widget build(BuildContext context) {
-    final repondues = _enquetes.where((e) => e['statut'] == 'repondu').length;
-    final enAttente = _enquetes.length - repondues;
+    final repondues = _allEnquetes
+        .where((e) => e['statut'] == 'repondu')
+        .length;
+    final enAttente = _allEnquetes.length - repondues;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F4FF),
+      backgroundColor: const Color(0xFFF9F7FD),
       appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: _enquetes.isEmpty
+        child: _allEnquetes.isEmpty
             ? _buildEmptyState()
             : RefreshIndicator(
                 onRefresh: () async {
                   await Future.delayed(const Duration(milliseconds: 500));
-                  setState(() => _loadEnquetes());
+                  setState(() => _loadEnquetesFromDatabase());
                 },
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: _buildStatsCard(repondues, enAttente),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final enquete = _enquetes[index];
-                        final isSelected = _selectedIds.contains(enquete['id']);
-                        return SlideTransition(
-                          position: _slideAnimation,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 6,
-                            ),
-                            child: _buildEnqueteCard(
-                              enquete,
-                              index,
-                              isSelected,
+                color: const Color(0xFFB794F4),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: ScaleTransition(
+                              scale: _scaleAnimation,
+                              child: _buildStatsCard(repondues, enAttente),
                             ),
                           ),
-                        );
-                      }, childCount: _enquetes.length),
+                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: _isLoading
+                                ? const SliverFillRemaining(
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Color(0xFFB794F4),
+                                            ),
+                                      ),
+                                    ),
+                                  )
+                                : SliverList(
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final enquete = _displayedEnquetes[index];
+                                      final isSelected = _selectedIds.contains(
+                                        enquete['id'],
+                                      );
+                                      return SlideTransition(
+                                        position: _slideAnimation,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: _buildEnqueteCard(
+                                            enquete,
+                                            index,
+                                            isSelected,
+                                          ),
+                                        ),
+                                      );
+                                    }, childCount: _displayedEnquetes.length),
+                                  ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                        ],
+                      ),
                     ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                    if (_totalPages > 1) _buildPagination(),
                   ],
                 ),
               ),
@@ -280,52 +477,151 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
     );
   }
 
+  Widget _buildPagination() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Page $_currentPage sur $_totalPages',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF8A8A9E),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _currentPage > 1
+                          ? Color(0xFFB794F4).withOpacity(0.2)
+                          : Colors.transparent,
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: _previousPage,
+                  icon: Icon(Icons.chevron_left),
+                  color: _currentPage > 1
+                      ? const Color(0xFFB794F4)
+                      : Colors.grey.shade300,
+                  iconSize: 24,
+                ),
+              ),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB794F4), Color(0xFFD4B8FF)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    '$_currentPage',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _currentPage < _totalPages
+                          ? Color(0xFFB794F4).withOpacity(0.2)
+                          : Colors.transparent,
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: _nextPage,
+                  icon: const Icon(Icons.chevron_right),
+                  color: _currentPage < _totalPages
+                      ? const Color(0xFFB794F4)
+                      : Colors.grey.shade300,
+                  iconSize: 24,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildNormalAppBar() {
     return AppBar(
       title: const Text(
-        'Historique',
+        'Mes enquêtes',
         style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
           color: Colors.white,
+          letterSpacing: -0.5,
         ),
       ),
       backgroundColor: const Color(0xFFB794F4),
       elevation: 0,
       centerTitle: true,
-      leading: IconButton(
-        onPressed: () => Navigator.pop(context),
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+        ),
       ),
       actions: [
-        if (_enquetes.isNotEmpty)
-          IconButton(
-            onPressed: _enterSelectionMode,
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.checklist, color: Colors.white, size: 20),
-            ),
-          ),
-        IconButton(
-          onPressed: _deleteAll,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
+        if (_allEnquetes.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.delete_sweep,
-              color: Colors.white,
-              size: 20,
+            child: IconButton(
+              onPressed: _enterSelectionMode,
+              icon: const Icon(Icons.checklist_rounded, color: Colors.white),
             ),
           ),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            onPressed: _deleteAll,
+            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
+          ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
@@ -333,7 +629,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
   PreferredSizeWidget _buildSelectionAppBar() {
     return AppBar(
       title: Text(
-        '${_selectedIds.length} sélectionné(s)',
+        '${_selectedIds.length} sélectionné${_selectedIds.length > 1 ? 's' : ''}',
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -343,27 +639,29 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       backgroundColor: const Color(0xFFB794F4),
       elevation: 0,
       centerTitle: true,
-      leading: IconButton(
-        onPressed: _exitSelectionMode,
-        icon: const Icon(Icons.close, color: Colors.white),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          onPressed: _exitSelectionMode,
+          icon: const Icon(Icons.close_rounded, color: Colors.white),
+        ),
       ),
       actions: [
-        IconButton(
-          onPressed: _deleteSelected,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.delete_outline,
-              color: Colors.white,
-              size: 20,
-            ),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            onPressed: _deleteSelected,
+            icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
           ),
         ),
-        const SizedBox(width: 8),
       ],
     );
   }
@@ -373,16 +671,16 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFB794F4), Color(0xFFD4B8FF)],
+          colors: [const Color(0xFFB794F4), const Color(0xFF9B7BDF)],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFB794F4).withOpacity(0.3),
-            blurRadius: 15,
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -390,17 +688,37 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem(Icons.forum_outlined, '${_enquetes.length}', 'Total'),
-          Container(width: 1, height: 35, color: Colors.white.withOpacity(0.3)),
-          _buildStatItem(Icons.check_circle_outline, '$repondues', 'Répondues'),
-          Container(width: 1, height: 35, color: Colors.white.withOpacity(0.3)),
-          _buildStatItem(Icons.pending_actions, '$enAttente', 'Attente'),
+          _buildStatItem(
+            Icons.forum_rounded,
+            '${_allEnquetes.length}',
+            'Total',
+            Colors.white,
+          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.2)),
+          _buildStatItem(
+            Icons.check_circle_rounded,
+            '$repondues',
+            'Répondues',
+            Colors.white,
+          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.2)),
+          _buildStatItem(
+            Icons.pending_rounded,
+            '$enAttente',
+            'Attente',
+            Colors.white,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(IconData icon, String value, String label) {
+  Widget _buildStatItem(
+    IconData icon,
+    String value,
+    String label,
+    Color color,
+  ) {
     return Column(
       children: [
         Container(
@@ -411,18 +729,24 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
           ),
           child: Icon(icon, color: Colors.white, size: 20),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            height: 1,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: Colors.white70),
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: Colors.white70,
+          ),
         ),
       ],
     );
@@ -435,233 +759,331 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
   ) {
     final isRepondu = enquete['statut'] == 'repondu';
     final statusColor = isRepondu
-        ? const Color(0xFF81C784)
-        : const Color(0xFFFFB74D);
-    final statusText = isRepondu ? 'Répondu' : 'Attente';
+        ? const Color(0xFF4CAF50)
+        : const Color(0xFFFF9800);
+    final statusText = isRepondu ? 'Répondu ✓' : 'En attente ⏳';
+    final hasMultipleQuestions =
+        enquete['questionsReponses'] != null &&
+        enquete['questionsReponses'].isNotEmpty;
+    final categoryIcon = enquete['icon'] ?? Icons.article_outlined;
+    final categoryColor = enquete['iconColor'] ?? const Color(0xFFB794F4);
 
-    return Material(
-      elevation: 1,
-      shadowColor: const Color(0xFFB794F4).withOpacity(0.15),
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFB794F4).withOpacity(0.05)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: isSelected
-              ? Border.all(color: const Color(0xFFB794F4), width: 1.2)
-              : null,
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  if (_isSelectionMode)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFFB794F4)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          color: isSelected
-                              ? const Color(0xFFB794F4)
-                              : Colors.transparent,
-                        ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 12,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                    ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          enquete['titre'],
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1A2E),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFB794F4).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                enquete['categorie'],
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFB794F4),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Icon(
-                              Icons.calendar_today,
-                              size: 9,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              enquete['date'],
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [statusColor, statusColor.withOpacity(0.7)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F4FF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+    return TweenAnimationBuilder(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: Duration(milliseconds: 300 + (index * 50)),
+      builder: (context, value, child) => Transform.scale(
+        scale: value,
+        child: Opacity(opacity: value, child: child),
+      ),
+      child: Material(
+        elevation: isSelected ? 4 : 2,
+        shadowColor: const Color(0xFFB794F4).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFB794F4).withOpacity(0.08)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: isSelected
+                ? Border.all(color: const Color(0xFFB794F4), width: 2)
+                : null,
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.message_outlined,
-                      size: 14,
-                      color: Color(0xFFB794F4),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        enquete['message'],
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF4A4A5E),
+                    if (_isSelectionMode)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFB794F4)
+                                  : Colors.grey.shade300,
+                              width: 2,
+                            ),
+                            color: isSelected
+                                ? const Color(0xFFB794F4)
+                                : Colors.transparent,
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                )
+                              : null,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            categoryColor.withOpacity(0.2),
+                            categoryColor.withOpacity(0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(categoryIcon, size: 24, color: categoryColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  enquete['titre'],
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1A1A2E),
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (hasMultipleQuestions)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFFB794F4,
+                                    ).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.quiz_rounded,
+                                        size: 10,
+                                        color: Color(0xFFB794F4),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${enquete['questionsReponses'].length}',
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFFB794F4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: categoryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.category_rounded,
+                                      size: 10,
+                                      color: categoryColor,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      enquete['categorie'],
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w600,
+                                        color: categoryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: 10,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                enquete['date'],
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.grey.shade400,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [statusColor, statusColor.withOpacity(0.8)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: statusColor.withOpacity(0.3),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        statusText,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _showEnqueteDetails(enquete),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.visibility_outlined,
-                              size: 16,
-                              color: Color(0xFFB794F4),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Détails',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFB794F4),
-                              ),
-                            ),
-                          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F7FD),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.message_rounded,
+                        size: 14,
+                        color: const Color(0xFFB794F4).withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          enquete['message'],
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF6B6B7E),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                  Container(width: 1, height: 25, color: Colors.grey.shade200),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _deleteSingle(enquete['id'], index),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.delete_outline,
-                              size: 16,
-                              color: Color(0xFFFF8A8A),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Supprimer',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFFF8A8A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-          ],
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _showEnqueteDetails(enquete),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                hasMultipleQuestions
+                                    ? Icons.quiz_rounded
+                                    : Icons.visibility_rounded,
+                                size: 16,
+                                color: const Color(0xFFB794F4),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                hasMultipleQuestions
+                                    ? 'Voir détails'
+                                    : 'Consulter',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFB794F4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: Colors.grey.shade200,
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _deleteSingle(enquete['id'], index),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.delete_outline_rounded,
+                                size: 16,
+                                color: const Color(0xFFFF6B6B),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Supprimer',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(
+                                    0xFFFF6B6B,
+                                  ).withOpacity(0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
         ),
       ),
     );
@@ -669,18 +1091,24 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
 
   void _showEnqueteDetails(Map<String, dynamic> enquete) {
     final isRepondu = enquete['statut'] == 'repondu';
+    final hasMultipleQuestions =
+        enquete['questionsReponses'] != null &&
+        enquete['questionsReponses'].isNotEmpty;
+    final categoryIcon = enquete['icon'] ?? Icons.article_outlined;
+    final categoryColor = enquete['iconColor'] ?? const Color(0xFFB794F4);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.4,
-        maxChildSize: 0.85,
+        initialChildSize: hasMultipleQuestions ? 0.85 : 0.65,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
@@ -693,7 +1121,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -704,17 +1132,26 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFB794F4), Color(0xFFD4B8FF)],
+                              gradient: LinearGradient(
+                                colors: [
+                                  categoryColor,
+                                  categoryColor.withOpacity(0.7),
+                                ],
                               ),
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: categoryColor.withOpacity(0.3),
+                                  blurRadius: 8,
+                                ),
+                              ],
                             ),
-                            child: const Icon(
-                              Icons.help_outline,
+                            child: Icon(
+                              categoryIcon,
                               color: Colors.white,
-                              size: 22,
+                              size: 24,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -728,13 +1165,16 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF1A1A2E),
+                                    height: 1.2,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Envoyée le ${enquete['dateEnvoi']}',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFF8A8A9E),
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -743,29 +1183,46 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 4,
+                              vertical: 5,
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: isRepondu
-                                    ? [
-                                        const Color(0xFF81C784),
-                                        const Color(0xFFA5D6A5),
-                                      ]
-                                    : [
-                                        const Color(0xFFFFB74D),
-                                        const Color(0xFFFFD699),
-                                      ],
+                                    ? [Color(0xFF4CAF50), Color(0xFF81C784)]
+                                    : [Color(0xFFFF9800), Color(0xFFFFB74D)],
                               ),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (isRepondu
+                                              ? const Color(0xFF4CAF50)
+                                              : const Color(0xFFFF9800))
+                                          .withOpacity(0.3),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              isRepondu ? 'Répondu' : 'Attente',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isRepondu
+                                      ? Icons.check_circle_rounded
+                                      : Icons.pending_rounded,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isRepondu ? 'Répondu' : 'Attente',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -774,64 +1231,259 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 4,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFB794F4).withOpacity(0.1),
+                          color: categoryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          enquete['categorie'],
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFB794F4),
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.category_rounded,
+                              size: 14,
+                              color: categoryColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              enquete['categorie'],
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: categoryColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
-                        'Votre message',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A2E),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F4FF),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          enquete['message'],
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF4A4A5E),
-                            height: 1.4,
+
+                      // Affichage des questions et réponses
+                      if (hasMultipleQuestions) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.quiz_rounded,
+                                size: 20,
+                                color: const Color(0xFFB794F4),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Détail du questionnaire',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1A2E),
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFB794F4,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${enquete['questionsReponses'].length} questions',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFB794F4),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      if (isRepondu) ...[
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Réponse',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A1A2E),
+                        const SizedBox(height: 12),
+                        ...enquete['questionsReponses'].asMap().entries.map((
+                          entry,
+                        ) {
+                          final idx = entry.key;
+                          final qr = entry.value;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF9F7FD),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFB794F4).withOpacity(0.1),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFFB794F4),
+                                            Color(0xFFD4B8FF),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${idx + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        qr['question'],
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1A1A2E),
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (isRepondu && qr['reponse'].isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFF4CAF50,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.reply_rounded,
+                                          size: 14,
+                                          color: Color(0xFF4CAF50),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          qr['reponse'],
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF6B6B7E),
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.message_rounded,
+                                size: 20,
+                                color: Color(0xFFB794F4),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Message',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0FFF0),
-                            borderRadius: BorderRadius.circular(16),
+                            color: const Color(0xFFF9F7FD),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: const Color(0xFF81C784).withOpacity(0.3),
+                              color: const Color(0xFFB794F4).withOpacity(0.1),
+                            ),
+                          ),
+                          child: Text(
+                            enquete['message'],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF6B6B7E),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      if (isRepondu && !hasMultipleQuestions) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.support_agent_rounded,
+                                size: 20,
+                                color: Color(0xFF4CAF50),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Réponse du support',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1A2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF4CAF50).withOpacity(0.05),
+                                const Color(0xFF81C784).withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: const Color(0xFF4CAF50).withOpacity(0.2),
                             ),
                           ),
                           child: Column(
@@ -840,31 +1492,31 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(5),
+                                    padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
                                       color: const Color(
-                                        0xFF81C784,
-                                      ).withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8),
+                                        0xFF4CAF50,
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Icon(
-                                      Icons.support_agent,
+                                      Icons.support_agent_rounded,
                                       size: 14,
-                                      color: Color(0xFF81C784),
+                                      color: Color(0xFF4CAF50),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   const Text(
-                                    'Support',
+                                    'Support client',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF81C784),
+                                      color: Color(0xFF4CAF50),
                                     ),
                                   ),
                                   const Spacer(),
                                   Text(
-                                    '${enquete['dateReponse']}',
+                                    enquete['dateReponse'] ?? 'Date inconnue',
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey.shade400,
@@ -872,12 +1524,12 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               Text(
                                 enquete['reponse'],
                                 style: const TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF4A4A5E),
+                                  color: Color(0xFF6B6B7E),
                                   height: 1.4,
                                 ),
                               ),
@@ -890,13 +1542,16 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close, size: 18),
-                          label: const Text('Fermer'),
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          label: const Text(
+                            'Fermer',
+                            style: TextStyle(fontSize: 14),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFB794F4),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
@@ -917,28 +1572,30 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
     return Center(
       child: TweenAnimationBuilder(
         tween: Tween<double>(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 600),
         builder: (context, value, child) =>
             Opacity(opacity: value, child: child),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(25),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFB794F4), Color(0xFFD4B8FF)],
+                ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFB794F4).withOpacity(0.1),
+                    color: const Color(0xFFB794F4).withOpacity(0.2),
                     blurRadius: 20,
                   ),
                 ],
               ),
               child: const Icon(
-                Icons.forum_outlined,
-                size: 50,
-                color: Color(0xFFB794F4),
+                Icons.forum_rounded,
+                size: 48,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 20),
@@ -952,7 +1609,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
             ),
             const SizedBox(height: 6),
             const Text(
-              'Vous n\'avez pas encore posé de questions',
+              'Vous n\'avez pas encore participé à des enquêtes',
               style: TextStyle(fontSize: 13, color: Color(0xFF8A8A9E)),
             ),
           ],
