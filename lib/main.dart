@@ -1,5 +1,6 @@
 import 'package:appmobile/screens/daschbord/HistoriqueEnquetes.dart';
 import 'package:appmobile/screens/daschbord/acceuil.dart';
+import 'package:appmobile/screens/daschbord/reclamations.dart';
 import 'package:appmobile/widgets/login_form.dart';
 import 'package:flutter/material.dart';
 import 'package:appmobile/screens/auth/login_screen.dart';
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => const ProfileConsultationScreen(),
         '/login': (context) => const LoginForm(),
         '/HistoriqueEnquetes': (context) => const HistoriqueEnquetesScreen(),
+        '/HistoriqueReclamations': (context) => const ReclamationScreen(),
       },
     );
   }

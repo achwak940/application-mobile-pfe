@@ -23,6 +23,17 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     // );
   }
 
+  void _navigateToHistoriqueReclamations() {
+    Navigator.pushNamed(context, '/HistoriqueReclamations');
+    // Ou si vous préférez sans named route :
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => const ReclamationScreen(),
+    //   ),
+    // );
+  }
+
   // KPI Data
   int _enquiriesAnswered = 148;
   int _reclamations = 23;
@@ -1049,7 +1060,7 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                           icon: Icons.report_problem_outlined,
                           label: 'Réclamation',
                           color: const Color(0xFFFF8A8A),
-                          onTap: () => print('Créer une réclamation'),
+                          onTap: _navigateToHistoriqueReclamations,
                         ),
                       ),
                       const SizedBox(width: 14),
