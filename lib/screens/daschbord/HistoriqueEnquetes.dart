@@ -1,4 +1,5 @@
 // screens/historique/historique_enquetes_screen.dart
+import 'package:appmobile/screens/Menu/MenuApp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -403,6 +404,7 @@ class _HistoriqueEnquetesScreenState extends State<HistoriqueEnquetesScreen>
     final enAttente = _allEnquetes.length - repondues;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: const Color(0xFFF9F7FD),
       appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
       body: FadeTransition(

@@ -1,4 +1,6 @@
+// screens/dashboard/dashboard_accueil_screen.dart
 import 'dart:convert';
+import 'package:appmobile/screens/Menu/MenuApp.dart';
 import 'package:flutter/material.dart';
 
 class DashboardAccueilScreen extends StatefulWidget {
@@ -12,27 +14,7 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  void _navigateToHistorique() {
-    Navigator.pushNamed(context, '/HistoriqueEnquetes');
-    // Ou si vous préférez sans named route :
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => const HistoriqueEnquetesScreen(),
-    //   ),
-    // );
-  }
-
-  void _navigateToHistoriqueReclamations() {
-    Navigator.pushNamed(context, '/HistoriqueReclamations');
-    // Ou si vous préférez sans named route :
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => const ReclamationScreen(),
-    //   ),
-    // );
-  }
+  late Animation<Offset> _slideAnimation;
 
   // KPI Data
   int _enquiriesAnswered = 148;
@@ -40,7 +22,7 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
   double _completionRate = 92.0;
 
   final String _userName = "Jean Dupont";
-  final String _userEmail = "jean.dupont@example.com";
+  final String _userEmail = "";
 
   // Profile image base64
   final String _profileImageBase64 =
@@ -55,16 +37,16 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
       'time': 'Il y a 5 minutes',
       'isRead': false,
       'type': 'enquiry',
-      'avatar': 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+      'enqueteId': '100',
     },
     {
       'id': '2',
       'title': 'Réclamation mise à jour',
-      'message': 'Votre réclamation #12345 a été prise en compte',
+      'message': 'Votre réclamation #R002 a été prise en compte',
       'time': 'Il y a 1 heure',
       'isRead': false,
       'type': 'complaint',
-      'avatar': 'https://cdn-icons-png.flaticon.com/512/456/456212.png',
+      'reclamationId': 'R002',
     },
     {
       'id': '3',
@@ -73,12 +55,23 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
       'time': 'Il y a 3 heures',
       'isRead': true,
       'type': 'system',
-      'avatar': null,
+    },
+    {
+      'id': '4',
+      'title': 'Nouvelle enquête disponible',
+      'message': 'Une nouvelle enquête de satisfaction est disponible',
+      'time': 'Il y a 1 jour',
+      'isRead': false,
+      'type': 'enquiry',
+      'enqueteId': '26',
     },
   ];
 
-  // MES propres enquêtes et réclamations (activités récentes)
+  // Mes propres enquêtes et réclamations
   List<Map<String, dynamic>> _myActivities = [];
+
+  // Contrôleur pour le bottom sheet
+  bool _isNotificationsOpen = false;
 
   @override
   void initState() {
@@ -91,6 +84,13 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
       parent: _animationController,
       curve: Curves.easeOut,
     );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _animationController.forward();
     _loadUserData();
     _loadMyActivities();
@@ -107,7 +107,6 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     }
   }
 
-  // Charger mes propres enquêtes et réclamations
   void _loadMyActivities() {
     _myActivities = [
       {
@@ -115,34 +114,31 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
         'type': 'enquiry',
         'title': 'Question sur les délais de livraison',
         'user': _userName,
-        'userAvatar': _profileImageBase64,
         'time': 'Hier',
-        'status': 'répondu',
+        'status': 'repondu',
         'message':
             'Quels sont les délais de livraison pour la livraison express ?',
-        'myActivity': true,
+        'enqueteId': '100',
       },
       {
         'id': 'act2',
         'type': 'complaint',
         'title': 'Colis endommagé',
         'user': _userName,
-        'userAvatar': _profileImageBase64,
         'time': 'Il y a 2 jours',
-        'status': 'en attente',
+        'status': 'en_attente',
         'message': 'J\'ai reçu mon colis avec le produit endommagé',
-        'myActivity': true,
+        'reclamationId': 'R001',
       },
       {
         'id': 'act3',
         'type': 'enquiry',
         'title': 'Demande de remboursement',
         'user': _userName,
-        'userAvatar': _profileImageBase64,
         'time': 'Il y a 3 jours',
-        'status': 'en cours',
+        'status': 'en_cours',
         'message': 'Je souhaite me faire rembourser ma commande',
-        'myActivity': true,
+        'enqueteId': '26',
       },
     ];
   }
@@ -158,30 +154,44 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
   }
 
   void _showNotificationsPanel() {
+    _isNotificationsOpen = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateBottomSheet) {
           return DraggableScrollableSheet(
-            initialChildSize: 0.9,
+            initialChildSize: 0.85,
             minChildSize: 0.5,
             maxChildSize: 0.95,
-            expand: false,
-            builder: (context, scrollController) {
-              return Column(
+            builder: (context, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Color(0xFFF0F0F0)),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _isNotificationsOpen = false;
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(20),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -208,31 +218,26 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                             const Text(
                               'Notifications',
                               style: TextStyle(
-                                fontSize: 22,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF1A1A2E),
                               ),
                             ),
-                            const SizedBox(width: 12),
                             if (_unreadNotificationsCount > 0)
                               Container(
+                                margin: const EdgeInsets.only(left: 8),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                                  horizontal: 8,
+                                  vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFFFF8A8A),
-                                      Color(0xFFFFB3B3),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(25),
+                                  color: const Color(0xFFFF6B6B),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '$_unreadNotificationsCount non lues',
+                                  '$_unreadNotificationsCount',
                                   style: const TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -242,6 +247,24 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                         ),
                         Row(
                           children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFB794F4).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _isNotificationsOpen = false;
+                                },
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  color: Color(0xFFB794F4),
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             TextButton(
                               onPressed: () {
                                 setStateBottomSheet(() {
@@ -273,7 +296,7 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                               child: const Text(
                                 'Tout supprimer',
                                 style: TextStyle(
-                                  color: Color(0xFFFF8A8A),
+                                  color: Color(0xFFFF6B6B),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -285,29 +308,30 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                   ),
                   Expanded(
                     child: _notifications.isEmpty
-                        ? Center(
+                        ? const Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.notifications_off,
-                                  size: 80,
-                                  color: Colors.grey[300],
+                                  size: 64,
+                                  color: Color(0xFFC4C4D4),
                                 ),
-                                const SizedBox(height: 20),
+                                SizedBox(height: 16),
                                 Text(
                                   'Aucune notification',
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey[400],
+                                    color: Color(0xFF8A8A9E),
                                   ),
                                 ),
+                                SizedBox(height: 8),
                                 Text(
                                   'Les notifications apparaîtront ici',
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[350],
+                                    fontSize: 12,
+                                    color: Color(0xFFC4C4D4),
                                   ),
                                 ),
                               ],
@@ -318,6 +342,8 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                             itemCount: _notifications.length,
                             itemBuilder: (context, index) {
                               final notification = _notifications[index];
+                              final isEnquiry =
+                                  notification['type'] == 'enquiry';
                               return Dismissible(
                                 key: Key(notification['id']),
                                 background: Container(
@@ -326,13 +352,8 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFF8A8A),
-                                        Color(0xFFFFB3B3),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(24),
+                                    color: const Color(0xFFFF6B6B),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   alignment: Alignment.centerRight,
                                   padding: const EdgeInsets.only(right: 20),
@@ -354,135 +375,125 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                                       notification['isRead'] = true;
                                     });
                                     setState(() {});
+                                    Navigator.pop(context);
+                                    _isNotificationsOpen = false;
+                                    _handleNotificationTap(notification);
                                   },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
+                                  child: Container(
                                     margin: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 6,
                                     ),
+                                    padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
                                       color: notification['isRead'] == false
                                           ? const Color(0xFFF9F5FF)
                                           : Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
+                                      borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
                                         color: notification['isRead'] == false
                                             ? const Color(0xFFB794F4)
                                             : const Color(0xFFF0F0F0),
                                         width: 1.5,
                                       ),
-                                      boxShadow: [
-                                        if (notification['isRead'] == false)
-                                          BoxShadow(
-                                            color: const Color(
-                                              0xFFB794F4,
-                                            ).withOpacity(0.1),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                      ],
+                                      boxShadow: notification['isRead'] == false
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFFB794F4,
+                                                ).withOpacity(0.1),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Row(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 28,
-                                            backgroundColor:
-                                                notification['type'] ==
-                                                    'enquiry'
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: isEnquiry
                                                 ? const Color(
                                                     0xFFB794F4,
                                                   ).withOpacity(0.1)
+                                                : notification['type'] ==
+                                                      'complaint'
+                                                ? const Color(
+                                                    0xFFFF6B6B,
+                                                  ).withOpacity(0.1)
                                                 : const Color(
-                                                    0xFFFF8A8A,
+                                                    0xFF4CAF50,
                                                   ).withOpacity(0.1),
-                                            child: Icon(
-                                              notification['type'] == 'enquiry'
-                                                  ? Icons.help_outline
-                                                  : Icons
-                                                        .report_problem_outlined,
-                                              color:
-                                                  notification['type'] ==
-                                                      'enquiry'
-                                                  ? const Color(0xFFB794F4)
-                                                  : const Color(0xFFFF8A8A),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
                                             ),
                                           ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  notification['title'],
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight:
-                                                        notification['isRead'] ==
-                                                            false
-                                                        ? FontWeight.w800
-                                                        : FontWeight.w600,
-                                                    color: const Color(
-                                                      0xFF1A1A2E,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  notification['message'],
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.access_time,
-                                                      size: 12,
-                                                      color: Colors.grey[400],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      notification['time'],
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: Colors.grey[400],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
+                                          child: Icon(
+                                            isEnquiry
+                                                ? Icons.quiz_rounded
+                                                : notification['type'] ==
+                                                      'complaint'
+                                                ? Icons.report_problem_rounded
+                                                : Icons.info_rounded,
+                                            color: isEnquiry
+                                                ? const Color(0xFFB794F4)
+                                                : notification['type'] ==
+                                                      'complaint'
+                                                ? const Color(0xFFFF6B6B)
+                                                : const Color(0xFF4CAF50),
+                                            size: 22,
                                           ),
-                                          if (notification['isRead'] == false)
-                                            Container(
-                                              width: 12,
-                                              height: 12,
-                                              decoration: BoxDecoration(
-                                                gradient: const LinearGradient(
-                                                  colors: [
-                                                    Color(0xFFB794F4),
-                                                    Color(0xFFD4B8FF),
-                                                  ],
-                                                ),
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: const Color(
-                                                      0xFFB794F4,
-                                                    ).withOpacity(0.4),
-                                                    blurRadius: 4,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                notification['title'],
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight:
+                                                      notification['isRead'] ==
+                                                          false
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                  color: const Color(
+                                                    0xFF1A1A2E,
                                                   ),
-                                                ],
+                                                ),
                                               ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                notification['message'],
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF6B6B7E),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                notification['time'],
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Color(0xFF8A8A9E),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (notification['isRead'] == false)
+                                          Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFB794F4),
+                                              shape: BoxShape.circle,
                                             ),
-                                        ],
-                                      ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -490,83 +501,96 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
                             },
                           ),
                   ),
+                  if (_notifications.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Colors.grey.shade200),
+                        ),
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _isNotificationsOpen = false;
+                          },
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          label: const Text('Fermer'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFB794F4),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
-              );
-            },
+              ),
+            ),
           );
         },
       ),
+    ).whenComplete(() {
+      _isNotificationsOpen = false;
+    });
+  }
+
+  void _handleNotificationTap(Map<String, dynamic> notification) {
+    if (notification['type'] == 'enquiry' &&
+        notification.containsKey('enqueteId')) {
+      _navigateToEnqueteDetail(notification['enqueteId']);
+    } else if (notification['type'] == 'complaint' &&
+        notification.containsKey('reclamationId')) {
+      _navigateToReclamationDetail(notification['reclamationId']);
+    }
+  }
+
+  void _navigateToEnqueteDetail(String enqueteId) {
+    Navigator.pushNamed(
+      context,
+      '/HistoriqueEnquetes',
+      arguments: {'selectedEnqueteId': enqueteId},
     );
   }
 
-  void _navigateToEnquete() {
-    Navigator.pushNamed(context, '/enquete');
+  void _navigateToReclamationDetail(String reclamationId) {
+    Navigator.pushNamed(
+      context,
+      '/HistoriqueReclamations',
+      arguments: {'selectedReclamationId': reclamationId},
+    );
+  }
+
+  void _navigateToHistoriqueEnquetes() {
+    Navigator.pushNamed(context, '/HistoriqueEnquetes');
+  }
+
+  void _navigateToHistoriqueReclamations() {
+    Navigator.pushNamed(context, '/HistoriqueReclamations');
   }
 
   void _navigateToProfile() {
     Navigator.pushNamed(context, '/profile');
   }
 
-  void _addNotification(String title, String message, String type) {
-    setState(() {
-      _notifications.insert(0, {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': title,
-        'message': message,
-        'time': 'À l\'instant',
-        'isRead': false,
-        'type': type,
-        'avatar': type == 'enquiry'
-            ? 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-            : 'https://cdn-icons-png.flaticon.com/512/456/456212.png',
-      });
-    });
+  void _navigateToStatistics() {
+    Navigator.pushNamed(context, '/settings');
   }
 
-  Widget _buildHistoryItem({
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color, color.withOpacity(0.7)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A2E),
-              ),
-            ),
-            const Spacer(),
-            Icon(Icons.chevron_right, color: color),
-          ],
-        ),
-      ),
-    );
+  void _navigateToActivityDetail(Map<String, dynamic> activity) {
+    if (activity['type'] == 'enquiry' && activity.containsKey('enqueteId')) {
+      _navigateToEnqueteDetail(activity['enqueteId']);
+    } else if (activity['type'] == 'complaint' &&
+        activity.containsKey('reclamationId')) {
+      _navigateToReclamationDetail(activity['reclamationId']);
+    }
   }
 
-  // Obtenir l'image de profil
   ImageProvider _getProfileImage() {
     try {
       final bytes = base64Decode(_profileImageBase64.split(',').last);
@@ -576,513 +600,456 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     }
   }
 
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'repondu':
+        return 'Répondu';
+      case 'en_attente':
+        return 'En attente';
+      case 'en_cours':
+        return 'En cours';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'repondu':
+        return const Color(0xFF4CAF50);
+      case 'en_attente':
+        return const Color(0xFFFF9800);
+      case 'en_cours':
+        return const Color(0xFF2196F3);
+      default:
+        return const Color(0xFF8A8A9E);
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'repondu':
+        return Icons.check_circle_rounded;
+      case 'en_attente':
+        return Icons.pending_rounded;
+      case 'en_cours':
+        return Icons.hourglass_empty_rounded;
+      default:
+        return Icons.help_outline_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: CustomScrollView(
-          slivers: [
-            // AppBar améliorée
-            SliverAppBar(
-              expandedHeight: 200,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF7C4DFF),
-                        Color(0xFFB794F4),
-                        Color(0xFFE0CCFF),
-                      ],
-                    ),
+      drawer: const AppDrawer(),
+      backgroundColor: const Color(0xFFF9F7FD),
+      body: CustomScrollView(
+        slivers: [
+          // AppBar réduite
+          SliverAppBar(
+            expandedHeight: 120, // Réduit de 220 à 120
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFB794F4), Color(0xFF9B7BDF)],
                   ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: _navigateToProfile,
-                                    child: Container(
-                                      width: 65,
-                                      height: 65,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 3,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.purple.withOpacity(
-                                              0.4,
-                                            ),
-                                            blurRadius: 20,
-                                            offset: const Offset(0, 8),
-                                          ),
-                                        ],
-                                        image: DecorationImage(
-                                          image: _getProfileImage(),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _userName,
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Container(
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: _navigateToProfile,
+                                  child: Container(
+                                    width: 50, // Réduit de 65 à 50
+                                    height: 50, // Réduit de 65 à 50
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.25),
-                                      borderRadius: BorderRadius.circular(30),
+                                      shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
-                                      ),
-                                    ),
-                                    child: IconButton(
-                                      onPressed: _showNotificationsPanel,
-                                      icon: const Icon(
-                                        Icons.notifications_none,
                                         color: Colors.white,
-                                        size: 26,
+                                        width: 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFFB794F4,
+                                          ).withOpacity(0.4),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                      image: DecorationImage(
+                                        image: _getProfileImage(),
+                                        fit: BoxFit.cover,
                                       ),
                                     ),
                                   ),
-                                  if (_unreadNotificationsCount > 0)
-                                    Positioned(
-                                      top: 5,
-                                      right: 5,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Color(0xFFFF6B6B),
-                                              Color(0xFFFF8A8A),
-                                            ],
-                                          ),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '$_unreadNotificationsCount',
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _userName.split(' ')[0],
+                                      style: const TextStyle(
+                                        fontSize: 20, // Réduit de 24 à 20
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: IconButton(
+                                    onPressed: _showNotificationsPanel,
+                                    icon: const Icon(
+                                      Icons.notifications_none,
+                                      color: Colors.white,
+                                      size: 22, // Réduit de 26 à 22
+                                    ),
+                                  ),
+                                ),
+                                if (_unreadNotificationsCount > 0)
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF6B6B),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 16,
+                                        minHeight: 16,
+                                      ),
+                                      child: Text(
+                                        '$_unreadNotificationsCount',
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
+          ),
 
-            // Content
-            SliverPadding(
-              padding: const EdgeInsets.all(20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // KPI Cards améliorées avec design moderne
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildKpiCard(
-                          title: 'Enquêtes',
-                          value: '$_enquiriesAnswered',
-                          icon: Icons.help_outline,
-                          color: const Color(0xFFB794F4),
-                          bgColor: const Color(0xFFF3E8FF),
-                          iconBgColor: const Color(0xFFB794F4),
-                        ),
+          // Contenu
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Cartes KPI
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildKpiCard(
+                        title: 'Enquêtes',
+                        value: '$_enquiriesAnswered',
+                        icon: Icons.quiz_rounded,
+                        color: const Color(0xFFB794F4),
+                        progress: _enquiriesAnswered / 200,
+                        onTap: _navigateToHistoriqueEnquetes,
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildKpiCard(
-                          title: 'Réclamations',
-                          value: '$_reclamations',
-                          icon: Icons.report_problem_outlined,
-                          color: const Color(0xFFFF8A8A),
-                          bgColor: const Color(0xFFFFF0F0),
-                          iconBgColor: const Color(0xFFFF8A8A),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKpiCard(
+                        title: 'Réclamations',
+                        value: '$_reclamations',
+                        icon: Icons.report_problem_rounded,
+                        color: const Color(0xFFFF6B6B),
+                        progress: _reclamations / 50,
+                        onTap: _navigateToHistoriqueReclamations,
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildKpiCard(
-                          title: 'Complétion',
-                          value: '${_completionRate.toStringAsFixed(1)}%',
-                          icon: Icons.trending_up,
-                          color: const Color(0xFF81C784),
-                          bgColor: const Color(0xFFF0FFF0),
-                          iconBgColor: const Color(0xFF81C784),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKpiCard(
+                        title: 'Complétion',
+                        value: '${_completionRate.toStringAsFixed(1)}%',
+                        icon: Icons.trending_up_rounded,
+                        color: const Color(0xFF4CAF50),
+                        progress: _completionRate / 100,
+                        onTap: _navigateToStatistics,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Section Mes activités
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFB794F4).withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 28),
-
-                  // Section Mes Activités - Mes enquêtes et réclamations
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFB794F4).withOpacity(0.12),
-                          blurRadius: 25,
-                          offset: const Offset(0, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.assignment_turned_in_rounded,
+                              color: Color(0xFFB794F4),
+                              size: 22,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Mes activités récentes',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1A1A2E),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      ),
+                      if (_myActivities.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.assignment_turned_in,
-                                color: Color(0xFFB794F4),
-                                size: 24,
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                'Mes enquêtes et réclamations',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1A1A2E),
+                          padding: EdgeInsets.all(40),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.inbox_rounded,
+                                  size: 48,
+                                  color: Color(0xFFC4C4D4),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _myActivities.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(40),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.inbox,
-                                        size: 60,
-                                        color: Color(0xFFC4C4D4),
-                                      ),
-                                      SizedBox(height: 12),
-                                      Text(
-                                        'Aucune activité pour le moment',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF8A8A9E),
-                                        ),
-                                      ),
-                                    ],
+                                SizedBox(height: 12),
+                                Text(
+                                  'Aucune activité récente',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF8A8A9E),
                                   ),
                                 ),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _myActivities.length,
-                                separatorBuilder: (context, index) =>
-                                    const Divider(
-                                      height: 1,
-                                      indent: 20,
-                                      endIndent: 20,
-                                    ),
-                                itemBuilder: (context, index) {
-                                  final activity = _myActivities[index];
-                                  final isEnquiry =
-                                      activity['type'] == 'enquiry';
-                                  String statusText = activity['status'];
-                                  Color statusColor;
-                                  if (statusText == 'répondu') {
-                                    statusColor = const Color(0xFF81C784);
-                                  } else if (statusText == 'en attente') {
-                                    statusColor = const Color(0xFFFFB74D);
-                                  } else if (statusText == 'en cours') {
-                                    statusColor = const Color(0xFF64B5F6);
-                                  } else {
-                                    statusColor = const Color(0xFFFFA5A5);
-                                  }
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _myActivities.length,
+                          separatorBuilder: (context, index) => const Divider(
+                            height: 1,
+                            indent: 20,
+                            endIndent: 20,
+                          ),
+                          itemBuilder: (context, index) {
+                            final activity = _myActivities[index];
+                            final isEnquiry = activity['type'] == 'enquiry';
+                            final statusText = _getStatusText(
+                              activity['status'],
+                            );
+                            final statusColor = _getStatusColor(
+                              activity['status'],
+                            );
+                            final statusIcon = _getStatusIcon(
+                              activity['status'],
+                            );
 
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 14,
+                            return GestureDetector(
+                              onTap: () => _navigateToActivityDetail(activity),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: isEnquiry
+                                            ? const Color(
+                                                0xFFB794F4,
+                                              ).withOpacity(0.1)
+                                            : const Color(
+                                                0xFFFF6B6B,
+                                              ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        isEnquiry
+                                            ? Icons.quiz_rounded
+                                            : Icons.car_repair_rounded,
+                                        size: 22,
+                                        color: isEnquiry
+                                            ? const Color(0xFFB794F4)
+                                            : const Color(0xFFFF6B6B),
+                                      ),
                                     ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color:
-                                                    (isEnquiry
-                                                            ? const Color(
-                                                                0xFFB794F4,
-                                                              )
-                                                            : const Color(
-                                                                0xFFFFA5A5,
-                                                              ))
-                                                        .withOpacity(0.3),
-                                                blurRadius: 10,
-                                              ),
-                                            ],
-                                          ),
-                                          child: CircleAvatar(
-                                            radius: 28,
-                                            backgroundImage: _getProfileImage(),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: isEnquiry
-                                                      ? const Color(0xFFB794F4)
-                                                      : const Color(0xFFFFA5A5),
-                                                  width: 3,
-                                                ),
-                                              ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            activity['title'],
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF1A1A2E),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            activity['message'],
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFF6B6B7E),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
                                             children: [
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    activity['title']!,
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: Color(0xFF1A1A2E),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 3,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: isEnquiry
-                                                          ? const Color(
-                                                              0xFFB794F4,
-                                                            ).withOpacity(0.1)
-                                                          : const Color(
-                                                              0xFFFFA5A5,
-                                                            ).withOpacity(0.1),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      isEnquiry
-                                                          ? 'Enquête'
-                                                          : 'Réclamation',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: isEnquiry
-                                                            ? const Color(
-                                                                0xFFB794F4,
-                                                              )
-                                                            : const Color(
-                                                                0xFFFFA5A5,
-                                                              ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
+                                              const Icon(
+                                                Icons.access_time_rounded,
+                                                size: 10,
+                                                color: Color(0xFF8A8A9E),
                                               ),
-                                              const SizedBox(height: 4),
+                                              const SizedBox(width: 4),
                                               Text(
-                                                activity['message']!,
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey[600],
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.access_time,
-                                                    size: 12,
-                                                    color: Colors.grey[400],
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    activity['time']!,
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[400],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                statusColor,
-                                                statusColor.withOpacity(0.7),
-                                              ],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              25,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: statusColor.withOpacity(
-                                                  0.3,
-                                                ),
-                                                blurRadius: 6,
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                statusText == 'répondu'
-                                                    ? Icons.check_circle
-                                                    : statusText == 'en attente'
-                                                    ? Icons.access_time
-                                                    : Icons.hourglass_empty,
-                                                size: 14,
-                                                color: Colors.white,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                statusText == 'répondu'
-                                                    ? 'Répondu'
-                                                    : statusText == 'en attente'
-                                                    ? 'En attente'
-                                                    : statusText == 'en cours'
-                                                    ? 'En cours'
-                                                    : 'En attente',
+                                                activity['time'],
                                                 style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  color: Color(0xFF8A8A9E),
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  );
-                                },
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            statusIcon,
+                                            size: 12,
+                                            color: statusColor,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            statusText,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: statusColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Quick Actions
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildQuickAction(
-                          icon: Icons.help_outline,
-                          label: 'Statistiques',
-                          color: const Color(0xFFB794F4),
-                          onTap: () => print('Voir les statistiques'),
+                            );
+                          },
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildQuickAction(
-                          icon: Icons.report_problem_outlined,
-                          label: 'Réclamation',
-                          color: const Color(0xFFFF8A8A),
-                          onTap: _navigateToHistoriqueReclamations,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildQuickAction(
-                          icon: Icons.history,
-                          label: 'Historique',
-                          color: const Color(0xFF81C784),
-                          onTap: _navigateToHistorique, // Appel de la méthode
-                        ),
-                      ),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                  const SizedBox(height: 20),
-                ]),
-              ),
+                // Actions rapides
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickAction(
+                        icon: Icons.analytics_rounded,
+                        label: 'Statistiques',
+                        color: const Color(0xFFB794F4),
+                        onTap: _navigateToStatistics,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickAction(
+                        icon: Icons.history_rounded,
+                        label: 'Enquêtes',
+                        color: const Color(0xFF4CAF50),
+                        onTap: _navigateToHistoriqueEnquetes,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickAction(
+                        icon: Icons.car_repair_rounded,
+                        label: 'Réclamations',
+                        color: const Color(0xFFFF6B6B),
+                        onTap: _navigateToHistoriqueReclamations,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+              ]),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1092,100 +1059,78 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
     required String value,
     required IconData icon,
     required Color color,
-    required Color bgColor,
-    required Color iconBgColor,
+    required double progress,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, color: iconBgColor, size: 22),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'En temps réel',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A1A2E),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.12),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF8A8A9E),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 18),
+                ),
+                const Spacer(),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: title == 'Enquêtes'
-                ? int.parse(value) / 200
-                : title == 'Réclamations'
-                ? int.parse(value) / 50
-                : double.parse(value.replaceAll('%', '')) / 100,
-            backgroundColor: color.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF8A8A9E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: color.withOpacity(0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 4,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1198,41 +1143,37 @@ class _DashboardAccueilScreenState extends State<DashboardAccueilScreen>
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+              color: color.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [color, color.withOpacity(0.7)],
                 ),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: color.withOpacity(0.3), blurRadius: 10),
-                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 color: Color(0xFF1A1A2E),
               ),
             ),
