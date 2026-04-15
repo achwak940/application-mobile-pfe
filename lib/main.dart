@@ -1,5 +1,5 @@
 import 'package:appmobile/screens/auth/login_screen.dart';
-import 'package:appmobile/screens/auth/register_screen.dart';
+import 'package:appmobile/screens/auth/register_screen.dart' hide LoginScreen;
 import 'package:appmobile/screens/daschbord/HistoriqueEnquetes.dart';
 import 'package:appmobile/screens/daschbord/acceuil.dart';
 import 'package:appmobile/screens/daschbord/reclamations.dart';
@@ -26,13 +26,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Poppins',
       ),
-      initialRoute: '/dashboard',
+      initialRoute: '/register',
       routes: {
         '/dashboard': (context) => const DashboardAccueilScreen(),
         '/enquete': (context) => const EnqueteScreen(id: 21),
-        '/register': (context) => const Register(),
+        '/register': (context) => const RegisterScreen(),
         '/profile': (context) => const ProfileConsultationScreen(),
-        '/login': (context) => const LoginForm(),
+        '/login': (context) => const LoginPage(),
         '/HistoriqueEnquetes': (context) => const HistoriqueEnquetesScreen(),
         '/HistoriqueReclamations': (context) => const ReclamationScreen(),
         '/settings': (context) => const SettingsScreen(),
